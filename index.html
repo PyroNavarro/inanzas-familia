@@ -448,9 +448,10 @@ async function syncData(){
     const res=await fetch(scriptUrl+'?action=getAll');
     const data=await res.json();
 
-    if(data.gastos&&data.gastos.length){
+    if(Array.isArray(data.gastos)){
       gastos=data.gastos.map((g,idx)=>({
         id: parseInt(campo(g,'id'))||Date.now()+idx,
+        sheetId: String(campo(g,'id','ID','Id')||''),
         desc: String(campo(g,'descripción','descripcion','Descripción','Descripcion')||''),
         monto: parseFloat(campo(g,'monto','Monto'))||0,
         dia: parseInt(campo(g,'día','dia','Día','Dia'))||null,
@@ -461,9 +462,10 @@ async function syncData(){
       }));
     }
 
-    if(data.ingresos&&data.ingresos.length){
+    if(Array.isArray(data.ingresos)){
       ingresos=data.ingresos.map((i,idx)=>({
         id: parseInt(campo(i,'id'))||Date.now()+idx,
+        sheetId: String(campo(i,'id','ID','Id')||''),
         desc: String(campo(i,'descripción','descripcion','Descripción','Descripcion')||''),
         quien: String(campo(i,'quién','quien','Quién','Quien')||''),
         monto: parseFloat(campo(i,'monto','Monto'))||0,
@@ -473,9 +475,10 @@ async function syncData(){
       }));
     }
 
-    if(data.recordatorios&&data.recordatorios.length){
+    if(Array.isArray(data.recordatorios)){
       recs=data.recordatorios.map((r,idx)=>({
         id: parseInt(campo(r,'id'))||Date.now()+idx,
+        sheetId: String(campo(r,'id','ID','Id')||''),
         desc: String(campo(r,'descripción','descripcion','Descripción','Descripcion')||''),
         monto: parseFloat(campo(r,'monto','Monto'))||0,
         dia: parseInt(campo(r,'día','dia','Día','Dia'))||null,
@@ -504,11 +507,12 @@ function addGasto(){
   const tipo=document.getElementById('g-tipo').value;
   const cat=document.getElementById('g-cat').value;
   if(!desc||!monto){toast('Completa descripción y monto');return;}
-  gastos.push({id:Date.now(),desc,monto,dia,mes,tipo,cat,origen:'manual'});
+  const id=Date.now();
+  gastos.push({id,desc,monto,dia,mes,tipo,cat,origen:'manual'});
   save();
   ['g-desc','g-monto','g-dia'].forEach(id=>document.getElementById(id).value='');
   render();toast('Gasto registrado');
-  if(scriptUrl)pushToSheet({tipo:'gasto',desc,monto,dia,mes,tipogasto:tipo,cat});
+  if(scriptUrl)pushToSheet({tipo:'gasto',id,desc,monto,dia,mes,tipogasto:tipo,cat});
 }
 
 function addIngreso(){
@@ -518,11 +522,12 @@ function addIngreso(){
   const dia=parseInt(document.getElementById('i-dia').value)||null;
   const mes=parseInt(document.getElementById('i-mes').value);
   if(!desc||!monto){toast('Completa descripción y monto');return;}
-  ingresos.push({id:Date.now(),desc,quien,monto,dia,mes,origen:'manual'});
+  const id=Date.now();
+  ingresos.push({id,desc,quien,monto,dia,mes,origen:'manual'});
   save();
   ['i-desc','i-quien','i-monto','i-dia'].forEach(id=>document.getElementById(id).value='');
   render();toast('Ingreso registrado');
-  if(scriptUrl)pushToSheet({tipo:'ingreso',desc,quien,monto,dia,mes});
+  if(scriptUrl)pushToSheet({tipo:'ingreso',id,desc,quien,monto,dia,mes});
 }
 
 function addRec(){
@@ -532,20 +537,33 @@ function addRec(){
   const tipo=document.getElementById('r-tipo').value;
   const nota=document.getElementById('r-nota').value.trim();
   if(!desc||!dia){toast('Completa descripción y día');return;}
-  recs.push({id:Date.now(),desc,monto,dia,tipo,nota,origen:'manual'});
+  const id=Date.now();
+  recs.push({id,desc,monto,dia,tipo,nota,origen:'manual'});
   save();
   ['r-desc','r-monto','r-dia','r-nota'].forEach(id=>document.getElementById(id).value='');
   render();toast('Recordatorio guardado');
-  if(scriptUrl)pushToSheet({tipo:'recordatorio',desc,monto,dia,frecuencia:tipo,notas:nota});
+  if(scriptUrl)pushToSheet({tipo:'recordatorio',id,desc,monto,dia,frecuencia:tipo,notas:nota});
 }
 
-function delGasto(id){gastos=gastos.filter(x=>x.id!==id);save();render();}
-function delIngreso(id){ingresos=ingresos.filter(x=>x.id!==id);save();render();}
-function delRec(id){recs=recs.filter(x=>x.id!==id);save();render();}
+function delGasto(id){
+  const item=gastos.find(x=>x.id===id);
+  gastos=gastos.filter(x=>x.id!==id);save();render();
+  if(scriptUrl&&item)pushToSheet({action:'delete',tipo:'gasto',id:item.sheetId||item.id});
+}
+function delIngreso(id){
+  const item=ingresos.find(x=>x.id===id);
+  ingresos=ingresos.filter(x=>x.id!==id);save();render();
+  if(scriptUrl&&item)pushToSheet({action:'delete',tipo:'ingreso',id:item.sheetId||item.id});
+}
+function delRec(id){
+  const item=recs.find(x=>x.id===id);
+  recs=recs.filter(x=>x.id!==id);save();render();
+  if(scriptUrl&&item)pushToSheet({action:'delete',tipo:'recordatorio',id:item.sheetId||item.id});
+}
 
 async function pushToSheet(data){
   if(!scriptUrl)return;
-  try{await fetch(scriptUrl,{method:'POST',body:JSON.stringify({action:'add',...data})});}catch(e){}
+  try{await fetch(scriptUrl,{method:'POST',body:JSON.stringify({action:data.action||'add',...data})});}catch(e){}
 }
 
 // ── MODAL ────────────────────────────────────────────────
