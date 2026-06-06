@@ -523,18 +523,47 @@ body {
 
   <!-- ===== RECORDATORIOS ===== -->
   <div class="section" id="sec-recs">
-    <!-- WhatsApp format guide -->
+    <!-- Telegram format guide -->
     <div class="card">
-      <div class="card-header"><div class="card-title">Registrar por WhatsApp</div></div>
-      <div class="wa-badge">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.091.538 4.058 1.478 5.773L0 24l6.335-1.652A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.82 9.82 0 0 1-5.015-1.374l-.36-.214-3.732.978.994-3.632-.234-.374A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
-        Formato de mensaje
+      <div class="card-header"><div class="card-title">Registrar por Telegram</div></div>
+
+      <!-- Paso 1 -->
+      <div style="display:flex;gap:12px;margin-bottom:14px;align-items:flex-start">
+        <div style="width:28px;height:28px;border-radius:50%;background:#2AABEE;color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">1</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px">Abre Telegram y busca el bot</div>
+          <div style="font-size:13px;color:var(--muted)">En el buscador de Telegram escribe el nombre de tu bot y ábrelo. Presiona <strong>Start</strong> si es la primera vez.</div>
+        </div>
       </div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:8px">Manda un mensaje con este formato:</p>
-      <div class="format-example"><span>comida 350 indispensable</span></div>
-      <div class="format-example"><span>netflix 199 no_indispensable</span></div>
-      <div class="format-example"><span>gasolina 800 indispensable transporte</span></div>
-      <p style="font-size:12px;color:var(--muted);margin-top:8px">Formato: <strong>descripción monto tipo [categoría]</strong></p>
+
+      <!-- Paso 2 -->
+      <div style="display:flex;gap:12px;margin-bottom:14px;align-items:flex-start">
+        <div style="width:28px;height:28px;border-radius:50%;background:#2AABEE;color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">2</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px">Escribe el gasto en este formato</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:6px"><strong>descripción monto tipo [categoría opcional]</strong></div>
+          <div class="format-example"><span>comida 350 indispensable</span></div>
+          <div class="format-example"><span>netflix 199 no_indispensable entretenimiento</span></div>
+          <div class="format-example"><span>gasolina 800 indispensable transporte</span></div>
+          <div class="format-example"><span>ropa 1200 no_indispensable</span></div>
+        </div>
+      </div>
+
+      <!-- Paso 3 -->
+      <div style="display:flex;gap:12px;margin-bottom:6px;align-items:flex-start">
+        <div style="width:28px;height:28px;border-radius:50%;background:#2AABEE;color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">3</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px">Espera la confirmación</div>
+          <div style="font-size:13px;color:var(--muted)">El bot responderá en segundos con:</div>
+          <div class="format-example" style="margin-top:6px"><span>✅ Registrado: comida por $350 (indispensable)</span></div>
+        </div>
+      </div>
+
+      <!-- Tipos válidos -->
+      <div style="background:var(--amber-bg);border-radius:var(--radius-sm);padding:10px 12px;margin-top:10px">
+        <div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:4px">⚠️ Tipos válidos</div>
+        <div style="font-size:12px;color:var(--amber)">Solo escribe exactamente: <strong>indispensable</strong> o <strong>no_indispensable</strong></div>
+      </div>
     </div>
 
     <!-- Agregar recordatorio -->
@@ -564,7 +593,7 @@ body {
     <div class="card">
       <div class="card-header"><div class="card-title">Configuración</div></div>
       <div class="info-box">
-        Conecta tu Google Sheet para que los datos registrados por WhatsApp aparezcan automáticamente en el dashboard.
+        Conecta tu Google Sheet para que los datos registrados por Telegram aparezcan automáticamente en el dashboard.
       </div>
       <div class="config-field">
         <label>ID de tu Google Sheet</label>
@@ -587,7 +616,7 @@ body {
         <p>En el Sheet ve a Extensiones → Apps Script, pega el código del archivo <code>apps-script.js</code> que se incluye en este proyecto y despliégalo como Web App.</p>
         <br>
         <p style="font-weight:600;color:var(--text);margin-bottom:6px">Paso 3 — Make</p>
-        <p>Crea un escenario en make.com: WhatsApp → Parser de texto → Google Sheets (Agregar fila). Usa el archivo <code>make-blueprint.json</code> incluido para importarlo directo.</p>
+        <p>Crea un escenario en make.com: Telegram Bot → Text Parser → Google Sheets. El escenario ya está configurado y funcionando.</p>
         <br>
         <p style="font-weight:600;color:var(--text);margin-bottom:6px">Paso 4 — Vercel</p>
         <p>Sube esta carpeta a GitHub y conéctala a Vercel. Tu app estará disponible en una URL pública que puedes guardar en tu pantalla de inicio.</p>
@@ -618,6 +647,10 @@ body {
   <button class="nav-item" onclick="showSection('recs',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     Pagos
+  </button>
+  <button class="nav-item" onclick="showSection('config',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Config
   </button>
 </nav>
 
@@ -1048,7 +1081,7 @@ function renderListaGastos() {
         <div class="item-dot" style="background:${x.tipo==='indispensable'?'var(--red)':'var(--amber)'}"></div>
         <div>
           <div class="item-desc">${x.desc}</div>
-          <div class="item-meta">${x.cat} · Día ${x.dia||'—'} · ${MESES[x.mes]}${x.origen==='whatsapp'?' · WA':''}</div>
+          <div class="item-meta">${x.cat} · Día ${x.dia||'—'} · ${MESES[x.mes]}${x.origen==='telegram'?' · TG':''}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
