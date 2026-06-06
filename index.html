@@ -473,8 +473,20 @@ async function syncData(){
       }));
     }
 
+    if(data.recordatorios&&data.recordatorios.length){
+      recs=data.recordatorios.map((r,idx)=>({
+        id: parseInt(campo(r,'id'))||Date.now()+idx,
+        desc: String(campo(r,'descripción','descripcion','Descripción','Descripcion')||''),
+        monto: parseFloat(campo(r,'monto','Monto'))||0,
+        dia: parseInt(campo(r,'día','dia','Día','Dia'))||null,
+        tipo: String(campo(r,'frecuencia','Frecuencia','tipo','Tipo')||'mensual'),
+        nota: String(campo(r,'notas','Notas','nota','Nota')||''),
+        origen: String(campo(r,'origen','Origen')||'sheet')
+      }));
+    }
+
     save();render();
-    toast(`✅ ${gastos.length} gastos · ${ingresos.length} ingresos`);
+    toast(`✅ ${gastos.length} gastos · ${ingresos.length} ingresos · ${recs.length} recordatorios`);
   }catch(e){
     console.error(e);
     toast('Error al sincronizar');
@@ -520,10 +532,11 @@ function addRec(){
   const tipo=document.getElementById('r-tipo').value;
   const nota=document.getElementById('r-nota').value.trim();
   if(!desc||!dia){toast('Completa descripción y día');return;}
-  recs.push({id:Date.now(),desc,monto,dia,tipo,nota});
+  recs.push({id:Date.now(),desc,monto,dia,tipo,nota,origen:'manual'});
   save();
   ['r-desc','r-monto','r-dia','r-nota'].forEach(id=>document.getElementById(id).value='');
   render();toast('Recordatorio guardado');
+  if(scriptUrl)pushToSheet({tipo:'recordatorio',desc,monto,dia,frecuencia:tipo,notas:nota});
 }
 
 function delGasto(id){gastos=gastos.filter(x=>x.id!==id);save();render();}
