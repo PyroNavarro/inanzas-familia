@@ -106,6 +106,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .config-field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
 .config-field input{width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--bg);font-family:'DM Mono',monospace;font-size:12px;color:var(--text);outline:none}
 .info-box{background:var(--blue-bg);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:var(--blue);margin-bottom:12px;line-height:1.5}
+.budget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-bottom:10px}
+.budget-mini{background:var(--bg);border-radius:var(--radius-sm);padding:11px 12px;border:1px solid var(--border)}
+.budget-mini-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.budget-mini-value{font-size:18px;font-weight:600;font-family:'DM Mono',monospace}
+.budget-note{font-size:13px;line-height:1.5;color:var(--muted);background:var(--blue-bg);border-radius:var(--radius-sm);padding:12px 14px;margin-top:10px}
+.budget-note strong{color:var(--blue)}
+.split-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--bg);margin:10px 0}
+.split-bar span{display:block;height:100%}
+.inline-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.secondary-btn{width:100%;padding:10px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--surface);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;border-radius:20px;padding:10px 20px;font-size:14px;font-weight:500;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
@@ -136,6 +146,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="metric"><div class="metric-label">Gastos</div><div class="metric-value r" id="d-gasto">$0</div></div>
     <div class="metric"><div class="metric-label">Balance</div><div class="metric-value" id="d-bal">$0</div></div>
     <div class="metric"><div class="metric-label">% Ahorro</div><div class="metric-value a" id="d-pct">0%</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Resumen mensual proyectado</div><div class="card-badge badge-blue">Nuevo modelo</div></div>
+    <div class="budget-grid">
+      <div class="budget-mini"><div class="budget-mini-label">Fijos comprometidos</div><div class="budget-mini-value a" id="bm-fixed">$0</div></div>
+      <div class="budget-mini"><div class="budget-mini-label">Variable gastado</div><div class="budget-mini-value r" id="bm-variable">$0</div></div>
+      <div class="budget-mini"><div class="budget-mini-label">Disponible proyectado</div><div class="budget-mini-value g" id="bm-projected">$0</div></div>
+    </div>
+    <div class="split-bar"><span id="bm-fixed-bar" style="width:0%;background:var(--amber)"></span><span id="bm-variable-bar" style="width:0%;background:var(--red)"></span><span id="bm-free-bar" style="width:100%;background:var(--green)"></span></div>
+    <div class="seg-legend">
+      <span><span class="seg-dot" style="background:var(--amber)"></span>Fijos</span>
+      <span><span class="seg-dot" style="background:var(--red)"></span>Variable</span>
+      <span><span class="seg-dot" style="background:var(--green)"></span>Libre proyectado</span>
+    </div>
   </div>
   <div class="card">
     <div class="card-header"><div class="card-title">Salud financiera</div><div class="card-badge" id="health-badge">—</div></div>
@@ -176,6 +200,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </div>
   <div class="card">
+    <div class="card-header"><div class="card-title">Apartar para pagos fijos</div><div class="card-badge badge-amber" id="flow-save-badge">$0</div></div>
+    <div class="budget-note" id="flow-save-note">Agrega ingresos y recordatorios para calcular cuánto apartar antes del próximo ingreso.</div>
+  </div>
+  <div class="card">
     <div style="display:flex;gap:14px;margin-bottom:14px;font-size:12px">
       <span><span class="seg-dot" style="background:var(--green)"></span>Ingreso</span>
       <span><span class="seg-dot" style="background:var(--red)"></span>Indispensable</span>
@@ -187,6 +215,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <!-- GASTOS -->
 <div class="section" id="sec-gastos">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Resumen de gastos</div><div class="card-badge badge-red" id="expense-summary-badge">$0</div></div>
+    <div class="budget-grid">
+      <div class="budget-mini"><div class="budget-mini-label">Total gastado</div><div class="budget-mini-value r" id="expense-total">$0</div></div>
+      <div class="budget-mini"><div class="budget-mini-label">Indispensable</div><div class="budget-mini-value r" id="expense-essential">$0</div></div>
+      <div class="budget-mini"><div class="budget-mini-label">No indispensable</div><div class="budget-mini-value a" id="expense-nonessential">$0</div></div>
+    </div>
+    <div class="budget-note" id="expense-summary-note">Los gastos registrados ya salieron de tu dinero. Aquí se separa lo indispensable de lo variable/no indispensable.</div>
+  </div>
   <!-- Mini guía Telegram -->
   <div class="card" style="border-left:3px solid var(--tg)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -220,6 +257,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <!-- INGRESOS -->
 <div class="section" id="sec-ingresos">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Resumen de ingresos</div><div class="card-badge badge-green" id="income-summary-badge">$0</div></div>
+    <div class="budget-grid">
+      <div class="budget-mini"><div class="budget-mini-label">Total mensual</div><div class="budget-mini-value g" id="income-total">$0</div></div>
+      <div class="budget-mini"><div class="budget-mini-label">Ya recibido</div><div class="budget-mini-value g" id="income-received">$0</div></div>
+      <div class="budget-mini"><div class="budget-mini-label">Por recibir</div><div class="budget-mini-value b" id="income-pending">$0</div></div>
+    </div>
+    <div class="budget-note" id="income-summary-note">Los ingresos por recibir ayudan a proyectar pagos futuros, pero el colchón inmediato se calcula con lo que ya entró.</div>
+  </div>
   <!-- Mini guía Telegram -->
   <div class="card" style="border-left:3px solid var(--tg)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -251,6 +297,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <!-- PAGOS -->
 <div class="section" id="sec-recs">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Resumen de pagos fijos</div><div class="card-badge badge-amber" id="fixed-summary-badge">$0</div></div>
+    <div class="budget-grid">
+      <div class="budget-mini"><div class="budget-mini-label">Total mensual</div><div class="budget-mini-value a" id="fixed-total">$0</div></div>
+      <div class="budget-mini"><div class="budget-mini-label">Antes próximo ingreso</div><div class="budget-mini-value b" id="fixed-before-income">$0</div></div>
+      <div class="budget-mini"><div class="budget-mini-label">Colchón estimado</div><div class="budget-mini-value g" id="fixed-cushion">$0</div></div>
+    </div>
+    <div class="budget-note" id="fixed-summary-note">Los recordatorios son compromisos futuros. No se cuentan como gasto real hasta que registres el pago.</div>
+  </div>
   <div class="card">
     <div class="card-header"><div class="card-title">Registrar por Telegram</div></div>
     <div class="tg-step"><div class="tg-num">1</div><div class="tg-txt">Abre Telegram y busca tu bot <strong>Finanzas Familia</strong>. Presiona Start si es la primera vez.</div></div>
@@ -286,6 +341,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <!-- CONFIG -->
 <div class="section" id="sec-config">
+  <div class="card">
+    <div class="card-header"><div class="card-title">Modo prototipo</div><div class="card-badge badge-blue">Local</div></div>
+    <div class="info-box">Carga datos inventados para probar el resumen mensual, los pagos fijos y el flujo de efectivo sin tocar Google Sheets.</div>
+    <div class="inline-actions">
+      <button class="secondary-btn" onclick="cargarDemo()">Cargar demo</button>
+      <button class="secondary-btn" onclick="limpiarDatosLocales()">Limpiar local</button>
+    </div>
+  </div>
   <div class="card">
     <div class="card-header"><div class="card-title">Configuración</div></div>
     <div class="info-box">Conecta tu Google Sheet para que los datos de Telegram aparezcan automáticamente en el dashboard.</div>
@@ -430,6 +493,30 @@ function guardarMeta(){
 }
 
 function fmt(n){return '$'+Math.round(n).toLocaleString('es-MX');}
+
+function cargarDemo(){
+  ingresos=[
+    {id:Date.now()+1,desc:'salario',quien:'Max',monto:25000,dia:6,mes:mesVista,origen:'demo'},
+    {id:Date.now()+2,desc:'freelance',quien:'Esposa',monto:8000,dia:20,mes:mesVista,origen:'demo'}
+  ];
+  gastos=[
+    {id:Date.now()+3,desc:'tacos',monto:150,dia:6,mes:mesVista,tipo:'no_indispensable',cat:'Alimentación',origen:'demo'},
+    {id:Date.now()+4,desc:'super',monto:1800,dia:8,mes:mesVista,tipo:'indispensable',cat:'Alimentación',origen:'demo'},
+    {id:Date.now()+5,desc:'cine',monto:620,dia:15,mes:mesVista,tipo:'no_indispensable',cat:'Entretenimiento',origen:'demo'}
+  ];
+  recs=[
+    {id:Date.now()+6,desc:'Renta',monto:12000,dia:3,tipo:'mensual',nota:'pagada este mes',origen:'demo'},
+    {id:Date.now()+7,desc:'Seguro coche',monto:1200,dia:10,tipo:'mensual',nota:'',origen:'demo'},
+    {id:Date.now()+8,desc:'TC Nu',monto:5000,dia:16,tipo:'mensual',nota:'',origen:'demo'},
+    {id:Date.now()+9,desc:'Internet',monto:699,dia:22,tipo:'mensual',nota:'',origen:'demo'}
+  ];
+  save();render();toast('Datos demo cargados');
+}
+
+function limpiarDatosLocales(){
+  ingresos=[];gastos=[];recs=[];
+  save();render();toast('Datos locales limpiados');
+}
 
 // Normalizar campo con acentos del Sheet
 function campo(obj,...keys){
@@ -673,8 +760,75 @@ function render(){
   renderListaGastos();
   renderListaIngresos();
   renderListaRecs();
+  renderBudgetModel(iM,gM,tI,tG);
   actualizarMeta(tI,tG);
 }
+
+function getBudgetModel(iM,gM,tI,tG){
+  const monthlyRecs=recs.filter(r=>r.tipo==='mensual'||!r.tipo);
+  const fixedTotal=monthlyRecs.reduce((a,x)=>a+(x.monto||0),0);
+  const variableTotal=gM.reduce((a,x)=>a+(x.monto||0),0);
+  const projected=tI-fixedTotal-variableTotal;
+  const nextIncome=iM.filter(i=>i.dia&&i.dia>DIA_HOY).sort((a,b)=>a.dia-b.dia)[0]||null;
+  const fixedBeforeIncome=monthlyRecs
+    .filter(r=>r.dia>=DIA_HOY&&(!nextIncome||r.dia<nextIncome.dia))
+    .reduce((a,x)=>a+(x.monto||0),0);
+  const variableBeforeIncome=gM
+    .filter(g=>g.dia>=DIA_HOY&&(!nextIncome||g.dia<nextIncome.dia))
+    .reduce((a,x)=>a+(x.monto||0),0);
+  const incomeUntilNow=iM.filter(i=>!i.dia||i.dia<=DIA_HOY).reduce((a,x)=>a+(x.monto||0),0);
+  const spentUntilNow=gM.filter(g=>!g.dia||g.dia<=DIA_HOY).reduce((a,x)=>a+(x.monto||0),0);
+  const cashBeforeIncome=incomeUntilNow-spentUntilNow-variableBeforeIncome;
+  const cushion=cashBeforeIncome-fixedBeforeIncome;
+  return{fixedTotal,variableTotal,projected,nextIncome,fixedBeforeIncome,variableBeforeIncome,cushion};
+}
+
+function renderBudgetModel(iM,gM,tI,tG){
+  const m=getBudgetModel(iM,gM,tI,tG);
+  const incomeReceived=iM.filter(i=>!i.dia||i.dia<=DIA_HOY).reduce((a,x)=>a+(x.monto||0),0);
+  const incomePending=Math.max(0,tI-incomeReceived);
+  const essential=gM.filter(g=>g.tipo==='indispensable').reduce((a,x)=>a+(x.monto||0),0);
+  const nonEssential=gM.filter(g=>g.tipo==='no_indispensable').reduce((a,x)=>a+(x.monto||0),0);
+  const fixedPct=tI>0?Math.min(100,Math.round(m.fixedTotal/tI*100)):0;
+  const varPct=tI>0?Math.min(100,Math.round(m.variableTotal/tI*100)):0;
+  const freePct=Math.max(0,100-fixedPct-varPct);
+
+  setText('bm-fixed',fmt(m.fixedTotal));
+  setText('bm-variable',fmt(m.variableTotal));
+  setText('bm-projected',fmt(m.projected));
+  setClass('bm-projected','budget-mini-value '+(m.projected>=0?'g':'r'));
+  setWidth('bm-fixed-bar',fixedPct);
+  setWidth('bm-variable-bar',varPct);
+  setWidth('bm-free-bar',freePct);
+
+  setText('flow-save-badge',fmt(m.fixedBeforeIncome));
+  const nextTxt=m.nextIncome?'antes del ingreso del día '+m.nextIncome.dia:'antes de terminar el mes';
+  setHtml('flow-save-note',`Aparta <strong>${fmt(m.fixedBeforeIncome)}</strong> para pagos fijos ${nextTxt}. Después de apartarlo, el colchón estimado queda en <strong>${fmt(m.cushion)}</strong>.`);
+
+  setText('fixed-summary-badge',fmt(m.fixedTotal));
+  setText('fixed-total',fmt(m.fixedTotal));
+  setText('fixed-before-income',fmt(m.fixedBeforeIncome));
+  setText('fixed-cushion',fmt(m.cushion));
+  setClass('fixed-cushion','budget-mini-value '+(m.cushion>=0?'g':'r'));
+  setHtml('fixed-summary-note',`Los recordatorios suman <strong>${fmt(m.fixedTotal)}</strong> este mes. Para cuidar flujo, separa <strong>${fmt(m.fixedBeforeIncome)}</strong> ${nextTxt}.`);
+
+  setText('income-summary-badge',fmt(tI));
+  setText('income-total',fmt(tI));
+  setText('income-received',fmt(incomeReceived));
+  setText('income-pending',fmt(incomePending));
+  setHtml('income-summary-note',`Este mes hay <strong>${fmt(tI)}</strong> de ingresos planeados. Ya entró <strong>${fmt(incomeReceived)}</strong> y falta por recibir <strong>${fmt(incomePending)}</strong>.`);
+
+  setText('expense-summary-badge',fmt(tG));
+  setText('expense-total',fmt(tG));
+  setText('expense-essential',fmt(essential));
+  setText('expense-nonessential',fmt(nonEssential));
+  setHtml('expense-summary-note',`Este mes se han gastado <strong>${fmt(tG)}</strong>. De eso, <strong>${fmt(essential)}</strong> fue indispensable y <strong>${fmt(nonEssential)}</strong> fue no indispensable.`);
+}
+
+function setText(id,value){const el=document.getElementById(id);if(el)el.textContent=value;}
+function setHtml(id,value){const el=document.getElementById(id);if(el)el.innerHTML=value;}
+function setClass(id,value){const el=document.getElementById(id);if(el)el.className=value;}
+function setWidth(id,value){const el=document.getElementById(id);if(el)el.style.width=value+'%';}
 
 function renderHealth(pct,gM){
   const c=pct>=20?'var(--green)':pct>=5?'var(--amber)':'var(--red)';
@@ -729,6 +883,7 @@ function renderTimeline(iM,gM){
   const evs=[];
   iM.filter(i=>i.dia).forEach(i=>evs.push({dia:i.dia,desc:i.desc+(i.quien?' · '+i.quien:''),monto:i.monto,kind:'ing'}));
   gM.filter(g=>g.dia).forEach(g=>evs.push({dia:g.dia,desc:g.desc,monto:g.monto,kind:g.tipo==='indispensable'?'ind':'nind',cat:g.cat}));
+  recs.filter(r=>r.dia).forEach(r=>evs.push({dia:r.dia,desc:r.desc,monto:r.monto,kind:'rec'}));
   if(!evs.length){el.innerHTML='<div class="empty">Agrega registros con día asignado para ver el flujo</div>';return;}
   const byDay={};evs.forEach(e=>{if(!byDay[e.dia])byDay[e.dia]=[];byDay[e.dia].push(e);});
   let bal=0;
@@ -736,9 +891,9 @@ function renderTimeline(iM,gM){
     const its=byDay[d];const past=d<DIA_HOY,today=d===DIA_HOY;
     const dc=today?'var(--blue)':past?'var(--muted)':'var(--green)';
     const dbg=today?'var(--blue-bg)':past?'rgba(0,0,0,.04)':'var(--green-bg)';
-    its.forEach(e=>bal+=e.kind==='ing'?e.monto:-e.monto);
+    its.forEach(e=>bal+=e.kind==='ing'?e.monto:e.kind==='rec'?0:-e.monto);
     const bc=bal>=0?'var(--green)':'var(--red)';
-    return`<div class="tl-item"><div class="tl-day" style="background:${dbg};color:${dc}">${d}</div><div class="tl-body"><div class="tl-lbl">${today?'Hoy':past?'Día '+d+' (pasado)':'Día '+d}</div>${its.map(e=>{const tc=e.kind==='ing'?'var(--green)':e.kind==='ind'?'var(--red)':'var(--amber)';const s=e.kind==='ing'?'+':'-';return`<div class="tl-row"><span class="tl-desc" style="color:${tc}">${e.desc}</span><span class="tl-amt" style="color:${tc}">${s}${fmt(e.monto)}</span></div>`;}).join('')}<div class="tl-bal">Saldo acumulado: <span style="color:${bc};font-weight:600">${fmt(bal)}</span></div></div></div>`;
+    return`<div class="tl-item"><div class="tl-day" style="background:${dbg};color:${dc}">${d}</div><div class="tl-body"><div class="tl-lbl">${today?'Hoy':past?'Día '+d+' (pasado)':'Día '+d}</div>${its.map(e=>{const tc=e.kind==='ing'?'var(--green)':e.kind==='ind'?'var(--red)':'var(--amber)';const s=e.kind==='ing'?'+':e.kind==='rec'?'apartar ':'-';const meta=e.kind==='rec'?' <span style="font-size:11px;color:var(--muted)">(fijo)</span>':'';return`<div class="tl-row"><span class="tl-desc" style="color:${tc}">${e.desc}${meta}</span><span class="tl-amt" style="color:${tc}">${s}${fmt(e.monto)}</span></div>`;}).join('')}<div class="tl-bal">Saldo real acumulado: <span style="color:${bc};font-weight:600">${fmt(bal)}</span></div></div></div>`;
   }).join('');
 }
 
