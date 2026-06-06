@@ -145,7 +145,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="metric"><div class="metric-label">Ingresos</div><div class="metric-value g" id="d-ing">$0</div></div>
     <div class="metric"><div class="metric-label">Gastos</div><div class="metric-value r" id="d-gasto">$0</div></div>
     <div class="metric"><div class="metric-label">Balance</div><div class="metric-value" id="d-bal">$0</div></div>
-    <div class="metric"><div class="metric-label">% Ahorro</div><div class="metric-value a" id="d-pct">0%</div></div>
+    <div class="metric"><div class="metric-label">% Disponible</div><div class="metric-value a" id="d-pct">0%</div></div>
   </div>
   <div class="card">
     <div class="card-header"><div class="card-title">Resumen mensual proyectado</div><div class="card-badge badge-blue">Nuevo modelo</div></div>
@@ -162,7 +162,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </div>
   <div class="card">
-    <div class="card-header"><div class="card-title">Salud financiera</div><div class="card-badge" id="health-badge">—</div></div>
+    <div class="card-header"><div class="card-title">Salud financiera proyectada</div><div class="card-badge" id="health-badge">—</div></div>
     <div class="score-ring"><div class="score-num" id="health-score">—</div><div class="score-label" id="health-txt">Agrega datos para ver tu score</div></div>
     <div style="margin-top:8px">
       <div style="font-size:12px;color:var(--muted);margin-bottom:4px">Gastos por tipo</div>
@@ -566,6 +566,7 @@ async function syncData(){
       recs=data.recordatorios.map((r,idx)=>({
         id: parseInt(campo(r,'id'))||Date.now()+idx,
         sheetId: String(campo(r,'id','ID','Id')||''),
+        fecha: String(campo(r,'fecha','Fecha')||''),
         desc: String(campo(r,'descripción','descripcion','Descripción','Descripcion')||''),
         monto: parseFloat(campo(r,'monto','Monto'))||0,
         dia: parseInt(campo(r,'día','dia','Día','Dia'))||null,
@@ -625,7 +626,7 @@ function addRec(){
   const nota=document.getElementById('r-nota').value.trim();
   if(!desc||!dia){toast('Completa descripción y día');return;}
   const id=Date.now();
-  recs.push({id,desc,monto,dia,tipo,nota,origen:'manual'});
+  recs.push({id,fecha:new Date(anioVista,mesVista,dia).toISOString(),desc,monto,dia,tipo,nota,origen:'manual'});
   save();
   ['r-desc','r-monto','r-dia','r-nota'].forEach(id=>document.getElementById(id).value='');
   render();toast('Recordatorio guardado');
@@ -741,7 +742,8 @@ function render(){
   const tI=iM.reduce((a,x)=>a+x.monto,0);
   const tG=gM.reduce((a,x)=>a+x.monto,0);
   const bal=tI-tG;
-  const pct=tI>0?Math.round((bal/tI)*100):0;
+  const budget=getBudgetModel(iM,gM,tI,tG);
+  const pct=tI>0?Math.round((budget.projected/tI)*100):0;
 
   const mesStr=MESES[mesVista]+' '+anioVista;
   document.getElementById('mes-label').textContent=mesStr;
@@ -751,8 +753,9 @@ function render(){
   document.getElementById('d-gasto').textContent=fmt(tG);
   const bEl=document.getElementById('d-bal');bEl.textContent=fmt(bal);bEl.className='metric-value '+(bal>=0?'g':'r');
   document.getElementById('d-pct').textContent=pct+'%';
+  document.getElementById('d-pct').className='metric-value '+(pct>=20?'g':pct>=0?'a':'r');
 
-  renderHealth(pct,gM);
+  renderHealth(pct,gM,budget);
   renderProx();
   renderBarChart();
   renderTimeline(iM,gM);
@@ -760,17 +763,47 @@ function render(){
   renderListaGastos();
   renderListaIngresos();
   renderListaRecs();
-  renderBudgetModel(iM,gM,tI,tG);
+  renderBudgetModel(iM,gM,tI,tG,budget);
   actualizarMeta(tI,tG);
 }
 
+function parseRecDate(r){
+  if(!r.fecha)return null;
+  const d=new Date(r.fecha);
+  return Number.isNaN(d.getTime())?null:d;
+}
+
+function recFrequency(r){
+  return String(r.tipo||r.frecuencia||'mensual').toLowerCase().replace('bi-mestral','bimestral');
+}
+
+function monthDiff(from,toYear,toMonth){
+  return (toYear-from.getFullYear())*12+(toMonth-from.getMonth());
+}
+
+function recAppliesToMonth(r,month=mesVista,year=anioVista){
+  const freq=recFrequency(r);
+  const base=parseRecDate(r);
+  if(freq==='mensual'||freq==='quincenal'||!freq)return true;
+  if(!base)return true;
+  const diff=monthDiff(base,year,month);
+  if(diff<0)return false;
+  if(freq==='anual')return base.getMonth()===month;
+  if(freq==='bimestral')return diff%2===0;
+  return true;
+}
+
+function recsForVisibleMonth(){
+  return recs.filter(r=>r.dia&&recAppliesToMonth(r));
+}
+
 function getBudgetModel(iM,gM,tI,tG){
-  const monthlyRecs=recs.filter(r=>r.tipo==='mensual'||!r.tipo);
-  const fixedTotal=monthlyRecs.reduce((a,x)=>a+(x.monto||0),0);
+  const visibleRecs=recsForVisibleMonth();
+  const fixedTotal=visibleRecs.reduce((a,x)=>a+(x.monto||0),0);
   const variableTotal=gM.reduce((a,x)=>a+(x.monto||0),0);
   const projected=tI-fixedTotal-variableTotal;
   const nextIncome=iM.filter(i=>i.dia&&i.dia>DIA_HOY).sort((a,b)=>a.dia-b.dia)[0]||null;
-  const fixedBeforeIncome=monthlyRecs
+  const fixedBeforeIncome=visibleRecs
     .filter(r=>r.dia>=DIA_HOY&&(!nextIncome||r.dia<nextIncome.dia))
     .reduce((a,x)=>a+(x.monto||0),0);
   const variableBeforeIncome=gM
@@ -783,8 +816,8 @@ function getBudgetModel(iM,gM,tI,tG){
   return{fixedTotal,variableTotal,projected,nextIncome,fixedBeforeIncome,variableBeforeIncome,cushion};
 }
 
-function renderBudgetModel(iM,gM,tI,tG){
-  const m=getBudgetModel(iM,gM,tI,tG);
+function renderBudgetModel(iM,gM,tI,tG,model){
+  const m=model||getBudgetModel(iM,gM,tI,tG);
   const incomeReceived=iM.filter(i=>!i.dia||i.dia<=DIA_HOY).reduce((a,x)=>a+(x.monto||0),0);
   const incomePending=Math.max(0,tI-incomeReceived);
   const essential=gM.filter(g=>g.tipo==='indispensable').reduce((a,x)=>a+(x.monto||0),0);
@@ -830,14 +863,14 @@ function setHtml(id,value){const el=document.getElementById(id);if(el)el.innerHT
 function setClass(id,value){const el=document.getElementById(id);if(el)el.className=value;}
 function setWidth(id,value){const el=document.getElementById(id);if(el)el.style.width=value+'%';}
 
-function renderHealth(pct,gM){
+function renderHealth(pct,gM,model){
   const c=pct>=20?'var(--green)':pct>=5?'var(--amber)':'var(--red)';
-  const txt=pct>=20?'Finanzas saludables':pct>=5?'En camino, pueden mejorar':pct>=0?'Atención requerida':'Gastos mayores a ingresos';
+  const txt=pct>=20?'Mes cubierto':pct>=5?'Mes cubierto, con margen bajo':pct>=0?'Muy justo después de fijos':'No alcanza con compromisos';
   const badge=pct>=20?'badge-green':pct>=5?'badge-amber':'badge-red';
   document.getElementById('health-score').textContent=pct+'%';
   document.getElementById('health-score').style.color=c;
   document.getElementById('health-txt').textContent=txt;
-  document.getElementById('health-badge').textContent=pct>=20?'Bien':pct>=5?'Regular':'Alerta';
+  document.getElementById('health-badge').textContent=pct>=20?'Bien':pct>=5?'Ajustado':'Alerta';
   document.getElementById('health-badge').className='card-badge '+badge;
   const ind=gM.filter(g=>g.tipo==='indispensable').reduce((a,x)=>a+x.monto,0);
   const nind=gM.filter(g=>g.tipo==='no_indispensable').reduce((a,x)=>a+x.monto,0);
@@ -854,7 +887,7 @@ function renderProx(){
   const evs=[];
   gastos.filter(g=>g.mes===mesVista&&g.dia).forEach(g=>evs.push({dia:g.dia,desc:g.desc,monto:g.monto,kind:'gasto'}));
   ingresos.filter(i=>i.mes===mesVista&&i.dia).forEach(i=>evs.push({dia:i.dia,desc:i.desc+(i.quien?' · '+i.quien:''),monto:i.monto,kind:'ing'}));
-  recs.forEach(r=>evs.push({dia:r.dia,desc:r.desc+(r.nota?' · '+r.nota:''),monto:r.monto,kind:'rec'}));
+  recsForVisibleMonth().forEach(r=>evs.push({dia:r.dia,desc:r.desc+(r.nota?' · '+r.nota:''),monto:r.monto,kind:'rec'}));
   const prox=evs.filter(e=>e.dia>=DIA_HOY).sort((a,b)=>a.dia-b.dia).slice(0,5);
   if(!prox.length){el.innerHTML='<div class="empty">Sin eventos próximos con fecha asignada</div>';return;}
   el.innerHTML=prox.map(e=>{
@@ -883,7 +916,7 @@ function renderTimeline(iM,gM){
   const evs=[];
   iM.filter(i=>i.dia).forEach(i=>evs.push({dia:i.dia,desc:i.desc+(i.quien?' · '+i.quien:''),monto:i.monto,kind:'ing'}));
   gM.filter(g=>g.dia).forEach(g=>evs.push({dia:g.dia,desc:g.desc,monto:g.monto,kind:g.tipo==='indispensable'?'ind':'nind',cat:g.cat}));
-  recs.filter(r=>r.dia).forEach(r=>evs.push({dia:r.dia,desc:r.desc,monto:r.monto,kind:'rec'}));
+  recsForVisibleMonth().forEach(r=>evs.push({dia:r.dia,desc:r.desc,monto:r.monto,kind:'rec'}));
   if(!evs.length){el.innerHTML='<div class="empty">Agrega registros con día asignado para ver el flujo</div>';return;}
   const byDay={};evs.forEach(e=>{if(!byDay[e.dia])byDay[e.dia]=[];byDay[e.dia].push(e);});
   let bal=0;
@@ -949,9 +982,11 @@ function renderListaRecs(){
   if(!recs.length){el.innerHTML='<div class="empty">Sin recordatorios</div>';return;}
   el.innerHTML=recs.map(r=>{
     const diff=r.dia-DIA_HOY;
-    const c=diff<=3&&diff>=0?'var(--red)':diff<0?'var(--muted)':'var(--blue)';
-    const bg=diff<=3&&diff>=0?'var(--red-bg)':diff<0?'rgba(0,0,0,.04)':'var(--blue-bg)';
-    return`<div class="rec-item"><div class="rec-day" style="background:${bg};color:${c}">${r.dia}</div><div class="rec-body"><div class="rec-desc">${r.desc}</div><div class="rec-sub">${r.tipo}${r.monto?' · '+fmt(r.monto):''}${r.nota?' · '+r.nota:''}</div></div><div style="display:flex;gap:4px"><button class="edit-btn" onclick="abrirEditRec(${r.id})">✏️</button><button class="del-btn" onclick="delRec(${r.id})">×</button></div></div>`;
+    const applies=recAppliesToMonth(r);
+    const c=!applies?'var(--muted)':diff<=3&&diff>=0?'var(--red)':diff<0?'var(--muted)':'var(--blue)';
+    const bg=!applies?'rgba(0,0,0,.04)':diff<=3&&diff>=0?'var(--red-bg)':diff<0?'rgba(0,0,0,.04)':'var(--blue-bg)';
+    const status=applies?'aplica este mes':'no este mes';
+    return`<div class="rec-item"><div class="rec-day" style="background:${bg};color:${c}">${r.dia}</div><div class="rec-body"><div class="rec-desc">${r.desc}</div><div class="rec-sub">${recFrequency(r)} · ${status}${r.monto?' · '+fmt(r.monto):''}${r.nota?' · '+r.nota:''}</div></div><div style="display:flex;gap:4px"><button class="edit-btn" onclick="abrirEditRec(${r.id})">✏️</button><button class="del-btn" onclick="delRec(${r.id})">×</button></div></div>`;
   }).join('');
 }
 
