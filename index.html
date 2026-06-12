@@ -651,19 +651,19 @@ function delRec(id){
   if(scriptUrl&&item)pushToSheet({action:'delete',tipo:'recordatorio',id:item.sheetId||item.id});
 }
 
-function toggleRecApartado(id,checked){
+async function toggleRecApartado(id,checked){
   const r=recs.find(x=>x.id===id);if(!r)return;
   r.apartadoMes=checked?visibleMonthKey():'';
   save();render();
-  if(scriptUrl)pushToSheet({action:'update',tipo:'recordatorio',id:r.sheetId||r.id,apartadoMes:r.apartadoMes,pagadoMes:r.pagadoMes||''});
+  if(scriptUrl)await pushToSheet({action:'update',tipo:'recordatorio',id:r.sheetId||r.id,apartadoMes:r.apartadoMes,pagadoMes:r.pagadoMes||''});
 }
 
-function pagarRec(id,checked){
+async function pagarRec(id,checked){
   const r=recs.find(x=>x.id===id);if(!r)return;
   if(!checked){
     r.pagadoMes='';
     save();render();
-    if(scriptUrl)pushToSheet({action:'update',tipo:'recordatorio',id:r.sheetId||r.id,apartadoMes:r.apartadoMes||'',pagadoMes:''});
+    if(scriptUrl)await pushToSheet({action:'update',tipo:'recordatorio',id:r.sheetId||r.id,apartadoMes:r.apartadoMes||'',pagadoMes:''});
     return;
   }
   const ok=confirm('¿Registrar este pago como gasto real?');
@@ -675,14 +675,22 @@ function pagarRec(id,checked){
   r.apartadoMes='';
   save();render();
   if(scriptUrl){
-    pushToSheet({tipo:'gasto',id:gastoId,desc:r.desc,monto:r.monto,dia,mes:mesVista,tipogasto:'indispensable',cat:'Pagos fijos'});
-    pushToSheet({action:'update',tipo:'recordatorio',id:r.sheetId||r.id,apartadoMes:'',pagadoMes:r.pagadoMes});
+    await pushToSheet({tipo:'gasto',id:gastoId,desc:r.desc,monto:r.monto,dia,mes:mesVista,anio:anioVista,tipogasto:'indispensable',cat:'Pagos fijos',origen:'pago fijo'});
+    await pushToSheet({action:'update',tipo:'recordatorio',id:r.sheetId||r.id,apartadoMes:'',pagadoMes:r.pagadoMes});
   }
 }
 
 async function pushToSheet(data){
-  if(!scriptUrl)return;
-  try{await fetch(scriptUrl,{method:'POST',body:JSON.stringify({action:data.action||'add',...data})});}catch(e){}
+  if(!scriptUrl)return false;
+  try{
+    const res=await fetch(scriptUrl,{method:'POST',body:JSON.stringify({action:data.action||'add',...data})});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    return true;
+  }catch(e){
+    console.error('No se pudo sincronizar con Google Sheets',e,data);
+    toast('No se pudo sincronizar con Sheets');
+    return false;
+  }
 }
 
 // ── MODAL ────────────────────────────────────────────────
@@ -745,22 +753,28 @@ function abrirEditRec(id){
   document.getElementById('modal').classList.add('open');
 }
 
-function guardarGasto(){
+async function guardarGasto(){
   const idx=gastos.findIndex(x=>x.id===modalId);if(idx<0)return;
   gastos[idx]={...gastos[idx],desc:document.getElementById('e-desc').value.trim(),monto:parseFloat(document.getElementById('e-monto').value)||0,dia:parseInt(document.getElementById('e-dia').value)||null,tipo:document.getElementById('e-tipo').value,cat:document.getElementById('e-cat').value,mes:parseInt(document.getElementById('e-mes').value)};
   save();closeModal();render();toast('Gasto actualizado');
+  const g=gastos[idx];
+  if(scriptUrl)await pushToSheet({action:'update',tipo:'gasto',id:g.sheetId||g.id,desc:g.desc,monto:g.monto,dia:g.dia,mes:g.mes,anio:anioVista,tipogasto:g.tipo,cat:g.cat,origen:g.origen||'manual'});
 }
 
-function guardarIngreso(){
+async function guardarIngreso(){
   const idx=ingresos.findIndex(x=>x.id===modalId);if(idx<0)return;
   ingresos[idx]={...ingresos[idx],desc:document.getElementById('ei-desc').value.trim(),quien:document.getElementById('ei-quien').value.trim(),monto:parseFloat(document.getElementById('ei-monto').value)||0,dia:parseInt(document.getElementById('ei-dia').value)||null,mes:parseInt(document.getElementById('ei-mes').value)};
   save();closeModal();render();toast('Ingreso actualizado');
+  const i=ingresos[idx];
+  if(scriptUrl)await pushToSheet({action:'update',tipo:'ingreso',id:i.sheetId||i.id,desc:i.desc,quien:i.quien,monto:i.monto,dia:i.dia,mes:i.mes,anio:anioVista,origen:i.origen||'manual'});
 }
 
-function guardarRec(){
+async function guardarRec(){
   const idx=recs.findIndex(x=>x.id===modalId);if(idx<0)return;
   recs[idx]={...recs[idx],desc:document.getElementById('er-desc').value.trim(),monto:parseFloat(document.getElementById('er-monto').value)||0,dia:parseInt(document.getElementById('er-dia').value),tipo:document.getElementById('er-tipo').value,nota:document.getElementById('er-nota').value.trim()};
   save();closeModal();render();toast('Recordatorio actualizado');
+  const r=recs[idx];
+  if(scriptUrl)await pushToSheet({action:'update',tipo:'recordatorio',id:r.sheetId||r.id,fecha:r.fecha,desc:r.desc,monto:r.monto,dia:r.dia,frecuencia:r.tipo,notas:r.nota||r.notas||'',origen:r.origen||'manual',apartadoMes:r.apartadoMes||'',pagadoMes:r.pagadoMes||''});
 }
 
 function closeModal(){document.getElementById('modal').classList.remove('open');modalId=null;}
