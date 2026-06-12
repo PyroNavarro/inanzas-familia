@@ -370,6 +370,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="info-box">Conecta tu Google Sheet para que los datos de Telegram aparezcan automáticamente en el dashboard.</div>
     <div class="config-field"><label>ID de tu Google Sheet</label><input type="text" id="sheet-id" placeholder="17pgg3mwruTWm_Zj5cmyXXEfjKuihu8RIcD1JviSaKf0"/></div>
     <div class="config-field"><label>URL del Apps Script</label><input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..."/></div>
+    <div class="config-field"><label>Token de acceso</label><input type="password" id="api-token" placeholder="Pega aquí tu token privado"/></div>
     <button class="submit-btn" onclick="guardarConfig()">Guardar configuración</button>
   </div>
   <div class="card">
@@ -449,7 +450,7 @@ const HOY=new Date();
 let mesVista=HOY.getMonth();
 let anioVista=HOY.getFullYear();
 const DIA_HOY=HOY.getDate();
-const BACKEND_VERSION='finanzas-familia-write-v4';
+const BACKEND_VERSION='finanzas-familia-write-v5';
 
 let ingresos=JSON.parse(localStorage.getItem('fin_i')||'[]');
 let gastos=JSON.parse(localStorage.getItem('fin_g')||'[]');
@@ -457,6 +458,7 @@ let recs=JSON.parse(localStorage.getItem('fin_r')||'[]');
 let metaGuardada=parseFloat(localStorage.getItem('fin_meta')||'0');
 let sheetId=localStorage.getItem('fin_sheetId')||'';
 let scriptUrl=localStorage.getItem('fin_scriptUrl')||'';
+let apiToken=localStorage.getItem('fin_apiToken')||'';
 let barChartInst=null;
 
 function init(){
@@ -464,6 +466,7 @@ function init(){
   if(metaGuardada)document.getElementById('meta-input').value=metaGuardada;
   if(sheetId)document.getElementById('sheet-id').value=sheetId;
   if(scriptUrl)document.getElementById('script-url').value=scriptUrl;
+  if(apiToken)document.getElementById('api-token').value=apiToken;
   render();
 }
 
@@ -498,8 +501,10 @@ function save(){
 function guardarConfig(){
   sheetId=document.getElementById('sheet-id').value.trim();
   scriptUrl=document.getElementById('script-url').value.trim();
+  apiToken=document.getElementById('api-token').value.trim();
   localStorage.setItem('fin_sheetId',sheetId);
   localStorage.setItem('fin_scriptUrl',scriptUrl);
+  localStorage.setItem('fin_apiToken',apiToken);
   toast('Configuración guardada');
 }
 
@@ -543,14 +548,27 @@ function campo(obj,...keys){
   return '';
 }
 
+function h(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[ch]));
+}
+
 // ── SYNC ────────────────────────────────────────────────
 async function syncData(){
   if(!scriptUrl){toast('Configura el URL del Apps Script primero');return;}
+  if(!apiToken){toast('Configura el token de acceso');return;}
   const btn=document.getElementById('syncBtn');
   btn.classList.add('syncing');
   try{
-    const res=await fetch(scriptUrl+'?action=getAll');
+    const sep=scriptUrl.includes('?')?'&':'?';
+    const res=await fetch(scriptUrl+sep+'action=getAll&token='+encodeURIComponent(apiToken));
     const data=await res.json();
+    if(!data||data.ok===false)throw new Error(data&&data.error?data.error:'Respuesta inválida');
 
     if(Array.isArray(data.gastos)){
       gastos=data.gastos.map((g,idx)=>({
@@ -720,8 +738,9 @@ function buscarGastoPagoFijo(r){
 
 async function pushToSheet(data){
   if(!scriptUrl)return false;
+  if(!apiToken){toast('Configura el token de acceso');return false;}
   try{
-    const payload={action:data.action||'add',...data,_:Date.now()};
+    const payload={action:data.action||'add',...data,token:apiToken,_:Date.now()};
     const params=new URLSearchParams();
     Object.entries(payload).forEach(([key,value])=>{
       if(value!==undefined)params.set(key,value===null?'':String(value));
@@ -1007,7 +1026,7 @@ function renderProx(){
     const c=isI?'var(--green)':diff<=3?'var(--red)':'var(--amber)';
     const bg=isI?'var(--green-bg)':diff<=3?'var(--red-bg)':'var(--amber-bg)';
     const lbl=diff===0?'Hoy':diff===1?'Mañana':'En '+diff+'d';
-    return`<div class="list-item"><span style="display:flex;align-items:center;gap:8px"><span class="day-dot" style="background:${bg};color:${c}">${e.dia}</span><div><div class="item-desc">${e.desc}${e.kind==='rec'?' <span style="font-size:11px;color:var(--muted)">(recurrente)</span>':''}</div><div class="item-meta">${lbl}</div></div></span><span class="item-amount" style="color:${c}">${e.monto?fmt(e.monto):''}</span></div>`;
+    return`<div class="list-item"><span style="display:flex;align-items:center;gap:8px"><span class="day-dot" style="background:${bg};color:${c}">${e.dia}</span><div><div class="item-desc">${h(e.desc)}${e.kind==='rec'?' <span style="font-size:11px;color:var(--muted)">(recurrente)</span>':''}</div><div class="item-meta">${lbl}</div></div></span><span class="item-amount" style="color:${c}">${e.monto?fmt(e.monto):''}</span></div>`;
   }).join('');
 }
 
@@ -1037,7 +1056,7 @@ function renderTimeline(iM,gM){
     const dbg=today?'var(--blue-bg)':past?'rgba(0,0,0,.04)':'var(--green-bg)';
     its.forEach(e=>bal+=e.kind==='ing'?e.monto:e.kind==='rec'?0:-e.monto);
     const bc=bal>=0?'var(--green)':'var(--red)';
-    return`<div class="tl-item"><div class="tl-day" style="background:${dbg};color:${dc}">${d}</div><div class="tl-body"><div class="tl-lbl">${today?'Hoy':past?'Día '+d+' (pasado)':'Día '+d}</div>${its.map(e=>{const tc=e.kind==='ing'?'var(--green)':e.kind==='ind'?'var(--red)':'var(--amber)';const s=e.kind==='ing'?'+':e.kind==='rec'?'apartar ':'-';const meta=e.kind==='rec'?' <span style="font-size:11px;color:var(--muted)">(fijo)</span>':'';return`<div class="tl-row"><span class="tl-desc" style="color:${tc}">${e.desc}${meta}</span><span class="tl-amt" style="color:${tc}">${s}${fmt(e.monto)}</span></div>`;}).join('')}<div class="tl-bal">Saldo real acumulado: <span style="color:${bc};font-weight:600">${fmt(bal)}</span></div></div></div>`;
+    return`<div class="tl-item"><div class="tl-day" style="background:${dbg};color:${dc}">${d}</div><div class="tl-body"><div class="tl-lbl">${today?'Hoy':past?'Día '+d+' (pasado)':'Día '+d}</div>${its.map(e=>{const tc=e.kind==='ing'?'var(--green)':e.kind==='ind'?'var(--red)':'var(--amber)';const s=e.kind==='ing'?'+':e.kind==='rec'?'apartar ':'-';const meta=e.kind==='rec'?' <span style="font-size:11px;color:var(--muted)">(fijo)</span>':'';return`<div class="tl-row"><span class="tl-desc" style="color:${tc}">${h(e.desc)}${meta}</span><span class="tl-amt" style="color:${tc}">${s}${fmt(e.monto)}</span></div>`;}).join('')}<div class="tl-bal">Saldo real acumulado: <span style="color:${bc};font-weight:600">${fmt(bal)}</span></div></div></div>`;
   }).join('');
 }
 
@@ -1050,42 +1069,46 @@ function renderCatDist(gM){
   if(!entries.length){el.innerHTML='<div class="empty">Sin gastos este mes</div>';return;}
   el.innerHTML=entries.map(([cat,val],i)=>{
     const pct=Math.round(val/total*100);const c=colors[i%colors.length];
-    return`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block"></span>${cat}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${fmt(val)} · ${pct}%</span></div><div class="pb"><div class="pf" style="width:${pct}%;background:${c}"></div></div></div>`;
+    return`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="display:flex;align-items:center;gap:7px"><span style="width:8px;height:8px;border-radius:50%;background:${c};display:inline-block"></span>${h(cat)}</span><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${fmt(val)} · ${pct}%</span></div><div class="pb"><div class="pf" style="width:${pct}%;background:${c}"></div></div></div>`;
   }).join('');
 }
 
 function renderListaGastos(){
   const el=document.getElementById('lista-gastos');
   if(!gastos.length){el.innerHTML='<div class="empty">Sin gastos registrados</div>';return;}
-  el.innerHTML=[...gastos].reverse().slice(0,30).map(x=>`
+  el.innerHTML=[...gastos].reverse().slice(0,30).map(x=>{
+    const id=Number(x.id)||0;
+    return`
     <div class="list-item">
       <div class="item-left">
         <div class="item-dot" style="background:${x.tipo==='indispensable'?'var(--red)':'var(--amber)'}"></div>
-        <div><div class="item-desc">${x.desc||'—'}</div><div class="item-meta">${x.cat||''} · Día ${x.dia||'—'} · ${MESES[x.mes]||''}${x.origen==='telegram'?' · TG':x.origen==='whatsapp'?' · WA':''}</div></div>
+        <div><div class="item-desc">${h(x.desc||'—')}</div><div class="item-meta">${h(x.cat||'')} · Día ${x.dia||'—'} · ${MESES[x.mes]||''}${x.origen==='telegram'?' · TG':x.origen==='whatsapp'?' · WA':''}</div></div>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <div class="item-amount r">${fmt(x.monto)}</div>
-        <button class="edit-btn" onclick="abrirEditGasto(${x.id})">✏️</button>
-        <button class="del-btn" onclick="delGasto(${x.id})">×</button>
+        <button class="edit-btn" onclick="abrirEditGasto(${id})">✏️</button>
+        <button class="del-btn" onclick="delGasto(${id})">×</button>
       </div>
-    </div>`).join('');
+    </div>`}).join('');
 }
 
 function renderListaIngresos(){
   const el=document.getElementById('lista-ingresos');
   if(!ingresos.length){el.innerHTML='<div class="empty">Sin ingresos registrados</div>';return;}
-  el.innerHTML=[...ingresos].reverse().slice(0,30).map(x=>`
+  el.innerHTML=[...ingresos].reverse().slice(0,30).map(x=>{
+    const id=Number(x.id)||0;
+    return`
     <div class="list-item">
       <div class="item-left">
         <div class="item-dot" style="background:var(--green)"></div>
-        <div><div class="item-desc">${x.desc||'—'}${x.quien?' · '+x.quien:''}</div><div class="item-meta">Día ${x.dia||'—'} · ${MESES[x.mes]||''}${x.origen==='telegram'?' · TG':''}</div></div>
+        <div><div class="item-desc">${h(x.desc||'—')}${x.quien?' · '+h(x.quien):''}</div><div class="item-meta">Día ${x.dia||'—'} · ${MESES[x.mes]||''}${x.origen==='telegram'?' · TG':''}</div></div>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <div class="item-amount g">${fmt(x.monto)}</div>
-        <button class="edit-btn" onclick="abrirEditIngreso(${x.id})">✏️</button>
-        <button class="del-btn" onclick="delIngreso(${x.id})">×</button>
+        <button class="edit-btn" onclick="abrirEditIngreso(${id})">✏️</button>
+        <button class="del-btn" onclick="delIngreso(${id})">×</button>
       </div>
-    </div>`).join('');
+    </div>`}).join('');
 }
 
 function renderListaRecs(){
@@ -1104,6 +1127,7 @@ function renderListaRecs(){
     else buckets.pendiente.items.push(r);
   });
   const renderCard=(r,state)=>{
+    const id=Number(r.id)||0;
     const diff=r.dia-DIA_HOY;
     const applies=recAppliesToMonth(r);
     const apartado=recIsApartado(r);
@@ -1112,10 +1136,10 @@ function renderListaRecs(){
     const bg=!applies?'rgba(0,0,0,.04)':diff<=3&&diff>=0?'var(--red-bg)':diff<0?'rgba(0,0,0,.04)':'var(--blue-bg)';
     const status=pagado?'pagado':apartado?'apartado':applies?'pendiente':'no este mes';
     let actions='';
-    if(state==='pendiente')actions=`<button class="rec-action warn" onclick="toggleRecApartado(${r.id},true)">Apartar</button><button class="rec-action primary" onclick="pagarRec(${r.id},true)">Pagar</button>`;
-    if(state==='apartado')actions=`<button class="rec-action danger" onclick="toggleRecApartado(${r.id},false)">Quitar apartado</button><button class="rec-action primary" onclick="pagarRec(${r.id},true)">Pagar</button>`;
-    if(state==='pagado')actions=`<button class="rec-action danger" onclick="pagarRec(${r.id},false)">Revertir</button>`;
-    return`<div class="rec-item"><div class="rec-day" style="background:${bg};color:${c}">${r.dia||'—'}</div><div class="rec-body"><div class="rec-desc">${r.desc||'—'}</div><div class="rec-sub">${recFrequency(r)} · ${status}${r.monto?' · '+fmt(r.monto):''}${r.nota?' · '+r.nota:''}</div>${actions?`<div class="rec-actions">${actions}</div>`:''}</div><div class="rec-icon-actions"><button class="edit-btn" onclick="abrirEditRec(${r.id})">✏️</button><button class="del-btn" onclick="delRec(${r.id})">×</button></div></div>`;
+    if(state==='pendiente')actions=`<button class="rec-action warn" onclick="toggleRecApartado(${id},true)">Apartar</button><button class="rec-action primary" onclick="pagarRec(${id},true)">Pagar</button>`;
+    if(state==='apartado')actions=`<button class="rec-action danger" onclick="toggleRecApartado(${id},false)">Quitar apartado</button><button class="rec-action primary" onclick="pagarRec(${id},true)">Pagar</button>`;
+    if(state==='pagado')actions=`<button class="rec-action danger" onclick="pagarRec(${id},false)">Revertir</button>`;
+    return`<div class="rec-item"><div class="rec-day" style="background:${bg};color:${c}">${r.dia||'—'}</div><div class="rec-body"><div class="rec-desc">${h(r.desc||'—')}</div><div class="rec-sub">${h(recFrequency(r))} · ${status}${r.monto?' · '+fmt(r.monto):''}${r.nota?' · '+h(r.nota):''}</div>${actions?`<div class="rec-actions">${actions}</div>`:''}</div><div class="rec-icon-actions"><button class="edit-btn" onclick="abrirEditRec(${id})">✏️</button><button class="del-btn" onclick="delRec(${id})">×</button></div></div>`;
   };
   const renderColumn=key=>{
     const b=buckets[key];
