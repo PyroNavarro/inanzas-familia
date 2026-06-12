@@ -76,10 +76,24 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .edit-btn:hover{background:var(--blue-bg);color:var(--blue)}
 .del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:4px;border-radius:6px;transition:all .15s}
 .del-btn:hover{background:var(--red-bg);color:var(--red)}
-.rec-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
-.rec-item:last-child{border-bottom:none}
+.payments-board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pay-col{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;min-width:0}
+.pay-col-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.pay-col-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.pay-col-total{font-size:12px;font-weight:700;font-family:'DM Mono',monospace}
+.pay-list{display:flex;flex-direction:column;gap:8px}
+.rec-item{display:flex;align-items:flex-start;gap:8px;padding:9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
+.rec-item:last-child{border-bottom:1px solid var(--border)}
 .rec-day{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'DM Mono',monospace}
-.rec-body{flex:1}.rec-desc{font-size:14px;font-weight:500}.rec-sub{font-size:12px;color:var(--muted)}
+.rec-body{flex:1;min-width:0}.rec-desc{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rec-sub{font-size:12px;color:var(--muted)}
+.rec-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rec-action{border:1px solid var(--border-strong);background:var(--surface);border-radius:7px;padding:5px 8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:var(--text)}
+.rec-action.primary{background:var(--text);color:#fff;border-color:var(--text)}
+.rec-action.warn{background:var(--amber-bg);color:var(--amber);border-color:transparent}
+.rec-action.danger{background:var(--red-bg);color:var(--red);border-color:transparent}
+.rec-icon-actions{display:flex;gap:2px}
+.off-month-list{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
+@media(max-width:760px){.payments-board{grid-template-columns:1fr}.pay-col{padding:9px}}
 .format-example{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);margin:5px 0;border-left:3px solid var(--border-strong)}
 .format-example span{color:var(--text);font-weight:500}
 .tg-steps-card{background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-top:10px;border:1px solid var(--border)}
@@ -668,6 +682,7 @@ async function pagarRec(id,checked){
       gastos=gastos.filter(g=>String(g.id)!==String(gastoId)&&String(g.sheetId||'')!==String(gastoId));
     }
     r.pagadoMes='';
+    r.apartadoMes=visibleMonthKey();
     r.gastoPagadoId='';
     save();render();
     if(scriptUrl){
@@ -1074,7 +1089,19 @@ function renderListaIngresos(){
 function renderListaRecs(){
   const el=document.getElementById('lista-recs');
   if(!recs.length){el.innerHTML='<div class="empty">Sin recordatorios</div>';return;}
-  el.innerHTML=recs.map(r=>{
+  const buckets={
+    pendiente:{title:'Pendientes',cls:'r',items:[]},
+    apartado:{title:'Apartados',cls:'b',items:[]},
+    pagado:{title:'Pagados',cls:'g',items:[]}
+  };
+  const offMonth=[];
+  recs.forEach(r=>{
+    if(!recAppliesToMonth(r)){offMonth.push(r);return;}
+    if(recIsPagado(r))buckets.pagado.items.push(r);
+    else if(recIsApartado(r))buckets.apartado.items.push(r);
+    else buckets.pendiente.items.push(r);
+  });
+  const renderCard=(r,state)=>{
     const diff=r.dia-DIA_HOY;
     const applies=recAppliesToMonth(r);
     const apartado=recIsApartado(r);
@@ -1082,8 +1109,19 @@ function renderListaRecs(){
     const c=!applies?'var(--muted)':diff<=3&&diff>=0?'var(--red)':diff<0?'var(--muted)':'var(--blue)';
     const bg=!applies?'rgba(0,0,0,.04)':diff<=3&&diff>=0?'var(--red-bg)':diff<0?'rgba(0,0,0,.04)':'var(--blue-bg)';
     const status=pagado?'pagado':apartado?'apartado':applies?'pendiente':'no este mes';
-    return`<div class="rec-item"><div class="rec-day" style="background:${bg};color:${c}">${r.dia}</div><div class="rec-body"><div class="rec-desc">${r.desc}</div><div class="rec-sub">${recFrequency(r)} · ${status}${r.monto?' · '+fmt(r.monto):''}${r.nota?' · '+r.nota:''}</div><div style="display:flex;gap:12px;margin-top:6px;font-size:12px;color:var(--muted)"><label><input type="checkbox" ${apartado?'checked':''} ${!applies||pagado?'disabled':''} onchange="toggleRecApartado(${r.id},this.checked)"> Apartado</label><label><input type="checkbox" ${pagado?'checked':''} ${!applies?'disabled':''} onchange="pagarRec(${r.id},this.checked)"> Pagado</label></div></div><div style="display:flex;gap:4px"><button class="edit-btn" onclick="abrirEditRec(${r.id})">✏️</button><button class="del-btn" onclick="delRec(${r.id})">×</button></div></div>`;
-  }).join('');
+    let actions='';
+    if(state==='pendiente')actions=`<button class="rec-action warn" onclick="toggleRecApartado(${r.id},true)">Apartar</button><button class="rec-action primary" onclick="pagarRec(${r.id},true)">Pagar</button>`;
+    if(state==='apartado')actions=`<button class="rec-action danger" onclick="toggleRecApartado(${r.id},false)">Quitar apartado</button><button class="rec-action primary" onclick="pagarRec(${r.id},true)">Pagar</button>`;
+    if(state==='pagado')actions=`<button class="rec-action danger" onclick="pagarRec(${r.id},false)">Revertir</button>`;
+    return`<div class="rec-item"><div class="rec-day" style="background:${bg};color:${c}">${r.dia||'—'}</div><div class="rec-body"><div class="rec-desc">${r.desc||'—'}</div><div class="rec-sub">${recFrequency(r)} · ${status}${r.monto?' · '+fmt(r.monto):''}${r.nota?' · '+r.nota:''}</div>${actions?`<div class="rec-actions">${actions}</div>`:''}</div><div class="rec-icon-actions"><button class="edit-btn" onclick="abrirEditRec(${r.id})">✏️</button><button class="del-btn" onclick="delRec(${r.id})">×</button></div></div>`;
+  };
+  const renderColumn=key=>{
+    const b=buckets[key];
+    const total=b.items.reduce((a,x)=>a+(x.monto||0),0);
+    return`<div class="pay-col"><div class="pay-col-head"><div class="pay-col-title">${b.title}</div><div class="pay-col-total ${b.cls}">${fmt(total)}</div></div><div class="pay-list">${b.items.length?b.items.map(r=>renderCard(r,key)).join(''):'<div class="empty" style="padding:16px 0">Sin pagos</div>'}</div></div>`;
+  };
+  const offHtml=offMonth.length?`<div class="off-month-list"><div class="pay-col-head"><div class="pay-col-title">No aplican este mes</div><div class="pay-col-total">${offMonth.length}</div></div><div class="pay-list">${offMonth.map(r=>renderCard(r,'off')).join('')}</div></div>`:'';
+  el.innerHTML=`<div class="payments-board">${renderColumn('pendiente')}${renderColumn('apartado')}${renderColumn('pagado')}</div>${offHtml}`;
 }
 
 function actualizarMeta(tI,tG){
