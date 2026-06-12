@@ -683,8 +683,16 @@ async function pagarRec(id,checked){
 async function pushToSheet(data){
   if(!scriptUrl)return false;
   try{
-    const res=await fetch(scriptUrl,{method:'POST',body:JSON.stringify({action:data.action||'add',...data})});
+    const payload={action:data.action||'add',...data,_:Date.now()};
+    const params=new URLSearchParams();
+    Object.entries(payload).forEach(([key,value])=>{
+      if(value!==undefined)params.set(key,value===null?'':String(value));
+    });
+    const sep=scriptUrl.includes('?')?'&':'?';
+    const res=await fetch(scriptUrl+sep+params.toString(),{method:'GET',cache:'no-store'});
     if(!res.ok)throw new Error('HTTP '+res.status);
+    const json=await res.json();
+    if(json&&json.ok===false)throw new Error('Apps Script no actualizo el registro');
     return true;
   }catch(e){
     console.error('No se pudo sincronizar con Google Sheets',e,data);
