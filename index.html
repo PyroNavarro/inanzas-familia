@@ -19,7 +19,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border:none;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--muted);font-size:10px;transition:color .15s}
 .nav-item.active{color:var(--text)}.nav-item svg{width:20px;height:20px;stroke-width:1.5}
-.main{padding:16px 16px 95px;max-width:680px;margin:0 auto}
+.main{padding:16px 16px 95px;max-width:1180px;margin:0 auto}
+.section{max-width:680px;margin:0 auto}
+.section.wide{max-width:1180px}
 .section{display:none}.section.active{display:block}
 .mes-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .mes-label{font-size:18px;font-weight:600;letter-spacing:-.4px}
@@ -76,7 +78,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .edit-btn:hover{background:var(--blue-bg);color:var(--blue)}
 .del-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:4px;border-radius:6px;transition:all .15s}
 .del-btn:hover{background:var(--red-bg);color:var(--red)}
-.payments-board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.payments-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .pay-col{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;min-width:0}
 .pay-col-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .pay-col-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
@@ -85,7 +87,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .rec-item{display:flex;align-items:flex-start;gap:8px;padding:9px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
 .rec-item:last-child{border-bottom:1px solid var(--border)}
 .rec-day{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;font-family:'DM Mono',monospace}
-.rec-body{flex:1;min-width:0}.rec-desc{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rec-sub{font-size:12px;color:var(--muted)}
+.rec-body{flex:1;min-width:0}.rec-desc{font-size:14px;font-weight:500;line-height:1.25;overflow-wrap:anywhere}.rec-sub{font-size:12px;color:var(--muted);line-height:1.35}
 .rec-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .rec-action{border:1px solid var(--border-strong);background:var(--surface);border-radius:7px;padding:5px 8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;color:var(--text)}
 .rec-action.primary{background:var(--text);color:#fff;border-color:var(--text)}
@@ -93,7 +95,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .rec-action.danger{background:var(--red-bg);color:var(--red);border-color:transparent}
 .rec-icon-actions{display:flex;gap:2px}
 .off-month-list{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
-@media(max-width:760px){.payments-board{grid-template-columns:1fr}.pay-col{padding:9px}}
+@media(max-width:760px){.main{max-width:680px}.section,.section.wide{max-width:680px}.payments-board{grid-template-columns:1fr}.pay-col{padding:9px}}
 .format-example{background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;color:var(--muted);margin:5px 0;border-left:3px solid var(--border-strong)}
 .format-example span{color:var(--text);font-weight:500}
 .tg-steps-card{background:var(--bg);border-radius:var(--radius-sm);padding:12px;margin-top:10px;border:1px solid var(--border)}
@@ -310,7 +312,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <!-- PAGOS -->
-<div class="section" id="sec-recs">
+<div class="section wide" id="sec-recs">
   <div class="card">
     <div class="card-header"><div class="card-title">Resumen de pagos fijos</div><div class="card-badge badge-amber" id="fixed-summary-badge">$0</div></div>
     <div class="budget-grid">
